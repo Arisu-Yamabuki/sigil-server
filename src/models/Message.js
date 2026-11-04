@@ -11,6 +11,8 @@ const messageSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now, index: true },
     // Null = keep until deleted. Set when a per-message or chat timer applies.
     expiresAt: { type: Date, default: null },
+    // Set when the sender edits the message.
+    editedAt: { type: Date, default: null },
   },
   { versionKey: false }
 );

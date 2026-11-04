@@ -97,6 +97,7 @@ router.get('/with/:username', requireAuth, async (req, res) => {
       body: m.body,
       createdAt: m.createdAt,
       expiresAt: m.expiresAt,
+      edited: !!m.editedAt,
     })),
   });
 });
@@ -140,6 +141,24 @@ router.post('/', requireAuth, async (req, res) => {
   });
 
   res.status(201).json({ id: msg._id, expiresAt: msg.expiresAt });
+});
+
+// The sender can replace the ciphertext of a message they sent. The recipient sees it on refresh.
+router.put('/:id', requireAuth, async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Bad id' });
+  const body = req.body.body;
+  if (!isPgpMessage(body)) return res.status(400).json({ error: 'Body must be a PGP armored message' });
+  if (Buffer.byteLength(body, 'utf8') > maxCiphertextBytes) {
+    return res.status(413).json({ error: 'Message too large' });
+  }
+  const msg = await Message.findOneAndUpdate(
+    { _id: req.params.id, from: req.userId },
+    { $set: { body, editedAt: new Date() } },
+    { new: true }
+  ).lean();
+  if (!msg) return res.status(404).json({ error: 'Not found' });
+  emitToUser(String(msg.to), 'message:updated', { id: msg._id });
+  res.json({ ok: true, editedAt: msg.editedAt });
 });
 
 // The sender can delete a message they sent.
