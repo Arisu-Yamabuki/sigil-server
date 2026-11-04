@@ -44,6 +44,39 @@ router.put('/conversation/:username/timer', requireAuth, async (req, res) => {
   res.json({ ttlSeconds: conv.ttlSeconds, timerSetAt: conv.timerSetAt });
 });
 
+// Inbox: one row per person you have talked to, newest first.
+router.get('/inbox', requireAuth, async (req, res) => {
+  const me = new mongoose.Types.ObjectId(req.userId);
+  const rows = await Message.aggregate([
+    { $match: { $or: [{ from: me }, { to: me }] } },
+    { $sort: { createdAt: -1 } },
+    {
+      $group: {
+        _id: { $cond: [{ $eq: ['$from', me] }, '$to', '$from'] },
+        lastAt: { $first: '$createdAt' },
+        lastBody: { $first: '$body' },
+        lastFromMe: { $first: { $eq: ['$from', me] } },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { lastAt: -1 } },
+    { $limit: 100 },
+  ]);
+  const users = await User.find({ _id: { $in: rows.map((r) => r._id) } }).select('username').lean();
+  const names = new Map(users.map((u) => [String(u._id), u.username]));
+  res.json({
+    conversations: rows
+      .filter((r) => names.has(String(r._id)))
+      .map((r) => ({
+        username: names.get(String(r._id)),
+        lastAt: r.lastAt,
+        lastBody: r.lastBody,
+        lastFromMe: r.lastFromMe,
+        count: r.count,
+      })),
+  });
+});
+
 // Fetch ciphertext for one conversation. The server cannot read it.
 router.get('/with/:username', requireAuth, async (req, res) => {
   const other = await User.findOne({ username: req.params.username.toLowerCase() }).select('_id').lean();
