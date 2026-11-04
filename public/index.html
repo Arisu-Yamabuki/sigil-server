@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sigil · Private messaging server</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; --bg:#07090d; --panel:#0e131b; --line:#1d2633; --text:#e6edf6; --muted:#8a97a8; --accent:#7cf3d4; --accent2:#7aa7ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background: radial-gradient(1200px 600px at 80% -10%, #15203a 0%, var(--bg) 60%); color:var(--text); font-family: Inter, system-ui, sans-serif; line-height:1.6; }
+  header, main, footer { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+  header { padding-top: 64px; }
+  .brand { font-weight:700; font-size:14px; letter-spacing:.3em; color:var(--accent); text-transform:uppercase; }
+  h1 { font-size: clamp(36px, 6vw, 60px); margin: 12px 0 8px; letter-spacing:-.02em; }
+  .lead { color: var(--muted); font-size: 18px; max-width: 640px; }
+  .badge { display:inline-block; margin-top:20px; padding:6px 12px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:13px; font-family:'JetBrains Mono', monospace; }
+  .badge b { color: var(--accent); font-weight:400; }
+  section { margin: 56px 0; }
+  h2 { font-size: 22px; margin-bottom: 16px; }
+  .steps { display:grid; gap:14px; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); counter-reset: s; padding:0; list-style:none; }
+  .steps li { background: var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px; position:relative; }
+  .steps li::before { counter-increment: s; content: counter(s, decimal-leading-zero); font-family:'JetBrains Mono', monospace; color:var(--accent2); font-size:12px; display:block; margin-bottom:6px; }
+  .steps h3 { margin:0 0 6px; font-size:16px; }
+  .steps p { margin:0; color:var(--muted); font-size:14px; }
+  .flow { background: var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px; font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--muted); overflow-x:auto; white-space:pre; }
+  .flow em { color: var(--accent); font-style:normal; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color: var(--muted); font-weight:600; }
+  code { font-family:'JetBrains Mono', monospace; font-size:13px; color: var(--accent); }
+  .ep { font-family:'JetBrains Mono', monospace; font-size:13px; }
+  .method { display:inline-block; min-width:52px; font-weight:700; }
+  .get { color: var(--accent2); } .post { color: var(--accent); } .put { color:#ffc66b; } .del { color:#ff7a8a; }
+  .note { border-left:3px solid var(--accent); padding:12px 16px; background:var(--panel); border-radius:0 10px 10px 0; color:var(--muted); font-size:14px; }
+  footer { padding-bottom:48px; color:var(--muted); font-size:13px; border-top:1px solid var(--line); padding-top:24px; }
+  .status { display:inline-flex; align-items:center; gap:8px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 12px var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Sigil</div>
+  <h1>Only you and the person you talk to can read it.</h1>
+  <p class="lead">Sigil encrypts every message on your phone before it leaves. This server only relays and stores scrambled text it cannot read.</p>
+  <span class="badge status"><span class="dot"></span> API status: <b id="status">checking…</b></span>
+</header>
+
+<main>
+  <section>
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><h3>Create an account</h3><p>Pick a username and password. The password proves who you are to the server. It does not unlock your keys.</p></li>
+      <li><h3>Set up your keys on your phone</h3><p>Create a new GPG key or import one. Your private key stays on your device and is never uploaded.</p></li>
+      <li><h3>Your public key is shared</h3><p>Only your public key goes to the server. Anyone who searches your username gets that public key.</p></li>
+      <li><h3>Encrypt before sending</h3><p>Your phone encrypts each message with the recipient's public key. The server only receives ciphertext.</p></li>
+      <li><h3>Decrypt on arrival</h3><p>The recipient's phone decrypts the message with its private key and shows it. Nothing is readable in transit or on the server.</p></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Message path</h2>
+    <div class="flow">Alice's phone
+  plaintext ──encrypt with Bob's PUBLIC key──▶ <em>ciphertext</em>
+                                                    │
+                                                    ▼
+Sigil server  (stores ciphertext + timer metadata only)
+                                                    │
+                                                    ▼
+Bob's phone
+  <em>ciphertext</em> ──decrypt with Bob's PRIVATE key──▶ plaintext</div>
+  </section>
+
+  <section>
+    <h2>Timers</h2>
+    <p class="note">A chat timer applies only to messages sent after it was set. Older messages keep their original rules. A per-message timer overrides the chat timer for that one message. Expired messages are removed from the database automatically.</p>
+  </section>
+
+  <section>
+    <h2>API</h2>
+    <table>
+      <thead><tr><th>Method</th><th>Endpoint</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td class="ep"><span class="method post">POST</span></td><td class="ep">/api/auth/register</td><td>Create an account</td></tr>
+        <tr><td class="ep"><span class="method post">POST</span></td><td class="ep">/api/auth/login</td><td>Log in, returns a token</td></tr>
+        <tr><td class="ep"><span class="method get">GET</span></td><td class="ep">/api/users/search?q=</td><td>Find users by username prefix</td></tr>
+        <tr><td class="ep"><span class="method get">GET</span></td><td class="ep">/api/users/:username/public-key</td><td>Fetch a public key only</td></tr>
+        <tr><td class="ep"><span class="method put">PUT</span></td><td class="ep">/api/users/me/public-key</td><td>Upload your public key</td></tr>
+        <tr><td class="ep"><span class="method get">GET</span></td><td class="ep">/api/messages/with/:username</td><td>Get ciphertext for a chat</td></tr>
+        <tr><td class="ep"><span class="method post">POST</span></td><td class="ep">/api/messages</td><td>Send ciphertext</td></tr>
+        <tr><td class="ep"><span class="method del">DEL</span></td><td class="ep">/api/messages/:id</td><td>Delete a message you sent</td></tr>
+        <tr><td class="ep"><span class="method put">PUT</span></td><td class="ep">/api/messages/conversation/:username/timer</td><td>Set the chat timer</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>What the server can and cannot see</h2>
+    <table>
+      <tbody>
+        <tr><td><b>Can see</b></td><td>Usernames, password hashes, public keys, ciphertext, timestamps, timer settings</td></tr>
+        <tr><td><b>Cannot see</b></td><td>Message contents, private keys, your key passphrase</td></tr>
+        <tr><td><b>Never stored</b></td><td>Profile pictures, avatars, device identifiers</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<footer>Sigil · sigil.adnand.com · <a href="/health" style="color:var(--accent2)">/health</a></footer>
+
+<script>
+  fetch('/health').then(r => r.json()).then(() => {
+    document.getElementById('status').textContent = 'online';
+  }).catch(() => {
+    document.getElementById('status').textContent = 'unreachable';
+  });
+</script>
+</body>
+</html>

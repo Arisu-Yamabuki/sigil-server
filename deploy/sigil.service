@@ -1,0 +1,18 @@
+[Unit]
+Description=Sigil server
+After=network-online.target mongodb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/sigil-server
+EnvironmentFile=/opt/sigil-server/.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+User=sigil
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
