@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy · Sigil</title>
+<meta name="description" content="Sigil privacy policy. We cannot read your messages or access your private keys. Here is what the server stores and what stays on your phone.">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#07090d">
+<link rel="canonical" href="https://sigil.adnand.com/privacy">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Sigil">
+<meta property="og:title" content="Privacy Policy · Sigil">
+<meta property="og:description" content="What Sigil stores, what it never sees, and how your data stays on your phone.">
+<meta property="og:url" content="https://sigil.adnand.com/privacy">
+<meta property="og:image" content="https://sigil.adnand.com/cover.jpg">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="500">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Privacy Policy · Sigil">
+<meta name="twitter:description" content="What Sigil stores, what it never sees, and how your data stays on your phone.">
+<meta name="twitter:image" content="https://sigil.adnand.com/cover.jpg">
+<script type="application/ld+json">
+{ "@context": "https://schema.org", "@type": "WebPage", "name": "Privacy Policy · Sigil", "url": "https://sigil.adnand.com/privacy", "dateModified": "2026-11-04", "isPartOf": { "@type": "WebSite", "name": "Sigil", "url": "https://sigil.adnand.com/" } }
+</script>
+<style>
+  :root { color-scheme: dark; --bg:#07090d; --panel:#0e131b; --line:#1d2633; --text:#e6edf6; --muted:#8a97a8; --accent:#7cf3d4; --accent2:#7aa7ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background: radial-gradient(1000px 500px at 80% -10%, #15203a 0%, var(--bg) 60%); color:var(--text); font-family: Inter, system-ui, sans-serif; line-height:1.7; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 24px 24px; }
+  .brand { font-weight:700; font-size:14px; letter-spacing:.3em; color:var(--accent); text-transform:uppercase; text-decoration:none; }
+  h1 { font-size: clamp(30px, 5vw, 42px); margin: 14px 0 6px; letter-spacing:-.02em; }
+  .updated { color: var(--muted); font-size: 14px; }
+  h2 { font-size: 20px; margin: 36px 0 10px; color: var(--accent); }
+  ul { padding-left: 20px; }
+  li { margin: 6px 0; }
+  p { margin: 10px 0; }
+  a { color: var(--accent2); }
+  .note { border-left:3px solid var(--accent); padding:12px 16px; background:var(--panel); border-radius:0 10px 10px 0; color:var(--muted); font-size:14px; margin-top:20px; }
+  footer { max-width: 760px; margin: 0 auto; padding: 24px 24px 56px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); display:flex; flex-wrap:wrap; gap: 12px 20px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="brand" href="/">Sigil</a>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Effective date: November 4, 2026</p>
+
+  <p>Sigil (&ldquo;we&rdquo;, &ldquo;our&rdquo;, &ldquo;us&rdquo;) runs the Sigil Android app and the relay server at <a href="https://sigil.adnand.com">https://sigil.adnand.com</a>. Sigil is open source and built so that we cannot read your messages or access your private keys.</p>
+
+  <h2>1. What the server stores</h2>
+  <ul>
+    <li><b>Account data:</b> your username and a bcrypt hash of your password. We never see or store your plaintext password.</li>
+    <li><b>Public keys:</b> your public GPG key, so others can encrypt messages to you. Anyone can look it up by username.</li>
+    <li><b>Ciphertext:</b> encrypted messages. The server cannot read them.</li>
+    <li><b>Metadata:</b> timestamps, sender and recipient usernames, and your timer settings. We use these to delete expired messages.</li>
+  </ul>
+
+  <h2>2. What the server never receives</h2>
+  <ul>
+    <li>Message contents, private keys, or key passphrases.</li>
+    <li>Profile pictures, avatars, or device identifiers. Sigil has no such feature.</li>
+  </ul>
+
+  <h2>3. What stays on your phone</h2>
+  <ul>
+    <li>Your private key is stored in app-private storage, protected by your key passphrase. It is never uploaded.</li>
+    <li>Signing out keeps this encrypted key on the phone. &ldquo;Delete keys&rdquo; in the Keys screen erases it.</li>
+    <li>Decrypted messages are kept only in memory and are cleared when you leave a chat.</li>
+    <li>Android cloud backups are disabled, so keys and messages are not copied off the device.</li>
+  </ul>
+
+  <h2>4. Retention and deletion</h2>
+  <ul>
+    <li>Messages with a timer are deleted from the server automatically when the timer expires.</li>
+    <li>You can edit or unsend messages you sent. Unsending removes the ciphertext from the server.</li>
+    <li>To delete your account and all server data, contact us using the details below.</li>
+  </ul>
+
+  <h2>5. Sharing</h2>
+  <p>We do not sell, rent, or share user data with third parties, advertisers, or analytics providers. The server holds no readable message content to share.</p>
+
+  <h2>6. Security notes</h2>
+  <ul>
+    <li>Screens use FLAG_SECURE, which blocks screenshots and recent-apps previews.</li>
+    <li>The server sees metadata: who messages whom, and when. End-to-end encryption protects content, not metadata.</li>
+    <li>If you lose your private key and have no backup, past messages cannot be recovered.</li>
+  </ul>
+
+  <h2>7. Changes</h2>
+  <p>We may update this policy as the app changes. The current version is published at this page and in the open-source repository on GitHub.</p>
+
+  <h2>Contact</h2>
+  <p>Source code and issues: <a href="https://github.com/Arisu-Yamabuki/Sigil" rel="noopener">github.com/Arisu-Yamabuki/Sigil</a></p>
+
+  <p class="note">This policy describes the Sigil app and server. It is not legal advice.</p>
+</main>
+<footer>
+  <span>© 2026 Sigil</span>
+  <a href="/">Home</a>
+  <a href="https://github.com/Arisu-Yamabuki/Sigil" rel="noopener">GitHub</a>
+</footer>
+</body>
+</html>

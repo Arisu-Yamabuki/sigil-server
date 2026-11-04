@@ -33,6 +33,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
 
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'privacy.html')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
