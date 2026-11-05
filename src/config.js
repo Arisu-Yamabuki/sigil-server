@@ -21,5 +21,7 @@ module.exports = {
   // TURN relay for calls behind strict NATs. The secret must match coturn's static-auth-secret.
   turnSecret: process.env.TURN_SECRET || '',
   turnUrls: (process.env.TURN_URLS || '').split(',').map((u) => u.trim()).filter(Boolean),
+  cfTurnKeyId: process.env.CF_TURN_KEY_ID || '',
+  cfTurnApiToken: process.env.CF_TURN_API_TOKEN || '',
   stunUrls: (process.env.STUN_URLS || 'stun:sigil.adnand.com:3478').split(',').map((u) => u.trim()),
 };
