@@ -10,6 +10,9 @@ const { initRealtime } = require('./realtime');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const messageRoutes = require('./routes/messages');
+const blockRoutes = require('./routes/blocks');
+const callRoutes = require('./routes/calls');
+const { initSignaling } = require('./signaling');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -32,6 +35,8 @@ app.get('/health', (req, res) => res.json({ ok: true, name: 'sigil' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/blocks', blockRoutes);
+app.use('/api/calls', callRoutes);
 
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'privacy.html')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -46,6 +51,7 @@ app.use((err, req, res, next) => {
   await connectDb();
   const server = http.createServer(app);
   initRealtime(server);
+  initSignaling(server);
   server.listen(port, () => console.log(`[sigil] listening on :${port}`));
 })().catch((err) => {
   console.error('[sigil] failed to start:', err.message);

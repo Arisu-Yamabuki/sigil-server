@@ -18,4 +18,8 @@ module.exports = {
   corsOrigin: process.env.CORS_ORIGIN || '*',
   maxCiphertextBytes: 64 * 1024,
   maxTimerSeconds: 60 * 60 * 24 * 365,
+  // TURN relay for calls behind strict NATs. The secret must match coturn's static-auth-secret.
+  turnSecret: process.env.TURN_SECRET || '',
+  turnUrls: (process.env.TURN_URLS || '').split(',').map((u) => u.trim()).filter(Boolean),
+  stunUrls: (process.env.STUN_URLS || 'stun:sigil.adnand.com:3478').split(',').map((u) => u.trim()),
 };

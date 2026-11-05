@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
+const Block = require('../models/Block');
 const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth');
 const { maxCiphertextBytes, maxTimerSeconds } = require('../config');
@@ -64,9 +65,14 @@ router.get('/inbox', requireAuth, async (req, res) => {
   ]);
   const users = await User.find({ _id: { $in: rows.map((r) => r._id) } }).select('username').lean();
   const names = new Map(users.map((u) => [String(u._id), u.username]));
+  const hidden = new Set(
+    (await Block.find({ $or: [{ blocker: me }, { blocked: me }] }).lean()).map((b) =>
+      String(b.blocker) === String(me) ? String(b.blocked) : String(b.blocker)
+    )
+  );
   res.json({
     conversations: rows
-      .filter((r) => names.has(String(r._id)))
+      .filter((r) => names.has(String(r._id)) && !hidden.has(String(r._id)))
       .map((r) => ({
         username: names.get(String(r._id)),
         lastAt: r.lastAt,
@@ -112,6 +118,13 @@ router.post('/', requireAuth, async (req, res) => {
   }
   const recipient = await User.findOne({ username: to }).select('_id fingerprint').lean();
   if (!recipient) return res.status(404).json({ error: 'Recipient not found' });
+  const blocked = await Block.exists({
+    $or: [
+      { blocker: recipient._id, blocked: req.userId },
+      { blocker: req.userId, blocked: recipient._id },
+    ],
+  });
+  if (blocked) return res.status(403).json({ error: 'You cannot message this user' });
 
   const now = Date.now();
   let ttl = 0;
