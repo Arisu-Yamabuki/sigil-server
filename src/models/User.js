@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema(
     // Public key only. The private key never leaves the user's device.
     publicKey: { type: String, default: null },
     fingerprint: { type: String, default: null, index: true },
+    // Firebase device tokens for incoming-call pushes. Hidden from normal queries.
+    fcmTokens: { type: [String], default: [], select: false },
     createdAt: { type: Date, default: Date.now },
   },
   { versionKey: false }

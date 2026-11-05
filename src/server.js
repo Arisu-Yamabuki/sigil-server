@@ -13,6 +13,7 @@ const messageRoutes = require('./routes/messages');
 const blockRoutes = require('./routes/blocks');
 const callRoutes = require('./routes/calls');
 const { initSignaling } = require('./signaling');
+const push = require('./push');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -49,6 +50,10 @@ app.use((err, req, res, next) => {
 
 (async () => {
   await connectDb();
+  push.init();
+  if (!require('./config').turnSecret) {
+    console.warn('[sigil] calls: TURN_SECRET is not set. Calls will fail between most networks.');
+  }
   const server = http.createServer(app);
   initRealtime(server);
   initSignaling(server);

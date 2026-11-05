@@ -42,4 +42,16 @@ router.put('/me/public-key', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Register this phone for incoming-call pushes. Keeps at most five devices per account.
+router.put('/me/push-token', requireAuth, async (req, res) => {
+  const token = String(req.body.token || '');
+  if (!/^[\w:-]{20,400}$/.test(token)) return res.status(400).json({ error: 'Invalid push token' });
+  await User.updateOne({ _id: req.userId }, { $addToSet: { fcmTokens: token } });
+  const u = await User.findById(req.userId).select('+fcmTokens').lean();
+  if (u && u.fcmTokens.length > 5) {
+    await User.updateOne({ _id: req.userId }, { $set: { fcmTokens: u.fcmTokens.slice(-5) } });
+  }
+  res.json({ ok: true });
+});
+
 module.exports = router;
