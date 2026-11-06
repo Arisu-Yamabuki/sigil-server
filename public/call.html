@@ -84,11 +84,13 @@
     <div><span id="me" class="muted"></span><span id="netDot" class="dot" title="Connection"></span></div>
   </header>
 
+  <div id="notice" class="card hidden" style="border-color:#ff7a8a;color:#ffb3bc;font-size:14px;line-height:1.5"></div>
   <div class="card">
     <input id="search" placeholder="Search a username" autocomplete="off" autocapitalize="off">
   </div>
   <div id="results"></div>
   <p class="muted small">Calls are encrypted with the other person's key and routed through a relay. Keep this tab open to receive calls.</p>
+  <p class="muted small">Only one device should use each account. Signing in on another device with the same account replaces your public key on the server.</p>
 </section>
 
 <!-- Incoming call -->
@@ -150,6 +152,12 @@
 
   function setNet(on) { $('netDot').classList.toggle('on', on); }
 
+  function showNotice(text) {
+    const box = $('notice');
+    box.textContent = text;
+    box.classList.remove('hidden');
+  }
+
   // ---- sign in --------------------------------------------------------------
   $('keyFile').addEventListener('change', async (e) => {
     const f = e.target.files[0];
@@ -201,7 +209,8 @@
       const mine = (S.priv.getFingerprint() || '').toUpperCase();
       const srv = await api('/api/users/' + S.username + '/public-key');
       if (srv.fingerprint && srv.fingerprint.toUpperCase() !== mine) {
-        toast('This key does not match the one on the server. Calls to you may fail.');
+        showNotice('Your key file does not match the key on the server for @' + S.username +
+          '. Calls to you will fail. Use the key from the device that uploaded its key last, or sign in with a separate test account on the other device.');
       }
     } catch (_) { /* no key uploaded yet */ }
   }
@@ -233,9 +242,14 @@
   }
 
   async function decryptBody(armored) {
-    const message = await openpgp.readMessage({ armoredMessage: armored });
-    const { data } = await openpgp.decrypt({ message, decryptionKeys: S.priv });
-    return JSON.parse(data);
+    try {
+      const message = await openpgp.readMessage({ armoredMessage: armored });
+      const { data } = await openpgp.decrypt({ message, decryptionKeys: S.priv });
+      return JSON.parse(data);
+    } catch (_) {
+      throw new Error('Key mismatch: this call was encrypted to a different key than your key file. ' +
+        'Export the key from the device that holds the key on the server, or make sure only one device uses this account.');
+    }
   }
 
   async function keyOf(username) {

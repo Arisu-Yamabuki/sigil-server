@@ -12,6 +12,7 @@ const userRoutes = require('./routes/users');
 const messageRoutes = require('./routes/messages');
 const blockRoutes = require('./routes/blocks');
 const callRoutes = require('./routes/calls');
+const pushRoutes = require('./routes/push');
 const { initSignaling } = require('./signaling');
 const push = require('./push');
 
@@ -38,6 +39,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/blocks', blockRoutes);
 app.use('/api/calls', callRoutes);
+app.use('/api/push', pushRoutes);
 
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'privacy.html')));
 app.get('/call', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'call.html')));

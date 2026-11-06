@@ -1,7 +1,7 @@
 const User = require('./models/User');
 
-// Firebase Cloud Messaging for incoming calls. Disabled unless FIREBASE_SERVICE_ACCOUNT points
-// to a service-account JSON file. Push payloads carry routing data only, never call contents.
+// Firebase Cloud Messaging. Disabled unless FIREBASE_SERVICE_ACCOUNT points to the
+// service-account JSON file. Push payloads carry routing data only, never call contents.
 let messaging = null;
 
 function init() {
@@ -24,23 +24,32 @@ function enabled() {
   return messaging !== null;
 }
 
-async function notifyIncomingCall(tokens, data) {
-  if (!messaging || tokens.length === 0) return false;
+// Sends a data message to each token. Returns how many arrived and any error codes.
+async function sendData(tokens, data) {
+  if (!messaging || tokens.length === 0) return { delivered: 0, errors: [] };
   const res = await messaging.sendEachForMulticast({
     tokens,
     data,
     android: { priority: 'high', ttl: 60 * 1000 },
   });
-  // Forget tokens the device no longer uses.
   const dead = [];
+  const errors = new Set();
   res.responses.forEach((r, i) => {
-    const code = r.error && r.error.code;
-    if (!r.success && (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token')) {
+    if (r.success) return;
+    const code = (r.error && r.error.code) || 'unknown';
+    errors.add(code);
+    if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
       dead.push(tokens[i]);
     }
   });
+  // Forget tokens the device no longer uses.
   if (dead.length) await User.updateMany({ fcmTokens: { $in: dead } }, { $pull: { fcmTokens: { $in: dead } } });
-  return res.successCount > 0;
+  return { delivered: res.successCount, errors: [...errors] };
 }
 
-module.exports = { init, enabled, notifyIncomingCall };
+async function notifyIncomingCall(tokens, data) {
+  const r = await sendData(tokens, data);
+  return r.delivered > 0;
+}
+
+module.exports = { init, enabled, sendData, notifyIncomingCall };
