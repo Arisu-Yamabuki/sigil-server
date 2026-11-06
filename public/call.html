@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#07090d">
+<title>Sigil · Web calls</title>
+<style>
+  :root { color-scheme: dark; --bg:#07090d; --panel:#0e131b; --panel2:#151d28; --line:#1d2633; --text:#e6edf6; --muted:#8a97a8; --teal:#7cf3d4; --blue:#7aa7ff; --danger:#ff7a8a; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin:0; background: radial-gradient(900px 500px at 85% -10%, #15203a 0%, var(--bg) 60%); color:var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .hidden { display:none !important; }
+  .screen { max-width: 480px; margin: 0 auto; padding: 28px 20px 40px; min-height: 100%; }
+  header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px; }
+  .brand { font-weight:800; letter-spacing:.25em; color:var(--teal); text-transform:uppercase; font-size:14px; }
+  h1 { font-size: 26px; margin: 14px 0 6px; letter-spacing:-.01em; }
+  h2 { font-size: 22px; margin: 6px 0 18px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; line-height: 1.5; }
+  .card { background: var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:14px; }
+  label { display:block; font-size:13px; color:var(--muted); margin: 10px 0 4px; }
+  input, textarea { width:100%; background: var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:12px; padding:12px 14px; font: inherit; outline: none; }
+  input:focus, textarea:focus { border-color: var(--teal); }
+  textarea { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; resize: vertical; margin-top: 8px; }
+  button { font: inherit; font-weight:600; border:0; border-radius:14px; padding:13px 16px; cursor:pointer; color:var(--text); background: var(--panel2); border:1px solid var(--line); }
+  button:disabled { opacity:.5; cursor:default; }
+  button.primary { background: linear-gradient(135deg, var(--teal), var(--blue)); color:#04201a; border:0; width:100%; margin-top: 14px; }
+  button.danger { color: var(--danger); }
+  button.round { width:auto; padding:10px 14px; font-size:14px; }
+  .row { display:flex; gap:10px; }
+  .row > * { flex:1; }
+  .err { color: var(--danger); font-size: 13px; min-height: 18px; margin: 10px 0 0; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:#44515f; margin-left:6px; vertical-align:middle; }
+  .dot.on { background: var(--teal); box-shadow: 0 0 10px var(--teal); }
+  .user { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px; border-radius:14px; background: var(--panel); border:1px solid var(--line); margin-bottom:10px; }
+  .user b { display:block; font-size:16px; }
+  .user .btns { display:flex; gap:8px; }
+  .overlay { position: fixed; inset: 0; background: #05070a; z-index: 10; display:flex; flex-direction: column; }
+  .centerCard { margin: auto; width: min(92vw, 380px); text-align:center; }
+  #remote { position:absolute; inset:0; width:100%; height:100%; object-fit: cover; background:#000; }
+  #local { position:absolute; top: 88px; right: 14px; width: 110px; height: 150px; object-fit: cover; border-radius: 14px; border:1px solid var(--line); background:#000; }
+  .callTop { position:absolute; top: 18px; left: 0; right: 0; text-align:center; text-shadow: 0 1px 8px #000; }
+  .callTop #callName { font-size: 22px; font-weight: 700; }
+  .callTop #callStatus { font-size: 14px; color: #c9d4e2; margin-top: 4px; }
+  .controls { position:absolute; bottom: 36px; left: 0; right: 0; display:flex; justify-content:center; gap:12px; padding: 0 16px; }
+  .controls button { min-width: 96px; background: rgba(14,19,27,.85); backdrop-filter: blur(6px); }
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--panel2); border:1px solid var(--line); padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity:0; transition: opacity .2s; pointer-events:none; z-index: 20; }
+  #toast.show { opacity:1; }
+</style>
+</head>
+<body>
+
+<!-- Sign in -->
+<section id="login" class="screen">
+  <div class="brand">Sigil</div>
+  <h1>Calls in your browser</h1>
+  <p class="muted small">Your private key is read into this tab's memory only. It is never stored, and never sent to the server.</p>
+
+  <form id="loginForm" class="card" autocomplete="off">
+    <label for="user">Username</label>
+    <input id="user" autocomplete="username" required>
+
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" required>
+
+    <label for="keyFile">Private key file (.asc)</label>
+    <input id="keyFile" type="file" accept=".asc,.txt,text/plain">
+    <textarea id="keyText" rows="4" placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----"></textarea>
+
+    <label for="keyPass">Key passphrase</label>
+    <input id="keyPass" type="password">
+
+    <button id="loginBtn" class="primary" type="submit">Sign in</button>
+    <p id="loginErr" class="err"></p>
+  </form>
+</section>
+
+<!-- Main -->
+<section id="main" class="screen hidden">
+  <header>
+    <div class="brand">Sigil</div>
+    <div><span id="me" class="muted"></span><span id="netDot" class="dot" title="Connection"></span></div>
+  </header>
+
+  <div class="card">
+    <input id="search" placeholder="Search a username" autocomplete="off" autocapitalize="off">
+  </div>
+  <div id="results"></div>
+  <p class="muted small">Calls are encrypted with the other person's key and routed through a relay. Keep this tab open to receive calls.</p>
+</section>
+
+<!-- Incoming call -->
+<div id="incoming" class="overlay hidden">
+  <div class="card centerCard">
+    <div class="muted" id="inKind">Incoming call</div>
+    <h2 id="inFrom"></h2>
+    <div class="row">
+      <button id="decline" class="danger">Decline</button>
+      <button id="accept" class="primary" style="margin-top:0">Accept</button>
+    </div>
+  </div>
+</div>
+
+<!-- Active call -->
+<div id="call" class="overlay hidden">
+  <video id="remote" autoplay playsinline></video>
+  <video id="local" autoplay playsinline muted></video>
+  <div class="callTop">
+    <div id="callName"></div>
+    <div id="callStatus"></div>
+  </div>
+  <div class="controls">
+    <button id="mute">Mute</button>
+    <button id="cam">Camera off</button>
+    <button id="end" class="danger">End</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/vendor/openpgp.min.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const S = {
+    token: null, username: null, priv: null, ws: null, ready: false,
+    callId: null, peer: null, peerKey: null, video: false, outgoing: false,
+    pendingOffer: null, pc: null, local: null, relays: 0,
+    connected: false, connectTimer: null, ringTimer: null, reconnectTimer: null,
+  };
+
+  // ---- helpers --------------------------------------------------------------
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  async function api(path, opts = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (S.token) headers.Authorization = 'Bearer ' + S.token;
+    const r = await fetch(path, { ...opts, headers });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || ('Request failed (' + r.status + ')'));
+    return j;
+  }
+
+  function setNet(on) { $('netDot').classList.toggle('on', on); }
+
+  // ---- sign in --------------------------------------------------------------
+  $('keyFile').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if (f) $('keyText').value = await f.text();
+  });
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('loginErr').textContent = '';
+    $('loginBtn').disabled = true;
+    try { await signIn(); }
+    catch (err) { $('loginErr').textContent = err.message; }
+    finally { $('loginBtn').disabled = false; }
+  });
+
+  async function signIn() {
+    const armored = $('keyText').value.trim();
+    if (!armored.startsWith('-----BEGIN PGP PRIVATE KEY BLOCK-----')) {
+      throw new Error('Choose your private key file (.asc) or paste it above');
+    }
+    let priv = await openpgp.readPrivateKey({ armoredKey: armored }).catch(() => {
+      throw new Error('That is not a valid private key');
+    });
+    priv = await openpgp.decryptKey({ privateKey: priv, passphrase: $('keyPass').value }).catch(() => {
+      throw new Error('Wrong key passphrase');
+    });
+
+    const username = $('user').value.trim().toLowerCase();
+    const r = await fetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: $('pw').value }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Sign in failed');
+
+    S.token = j.token; S.username = j.user.username; S.priv = priv;
+    $('keyText').value = ''; $('keyPass').value = ''; $('pw').value = '';
+    $('me').textContent = '@' + S.username;
+    $('login').classList.add('hidden');
+    $('main').classList.remove('hidden');
+
+    checkKeyMatches();
+    connectWS();
+  }
+
+  // Warn early if this key is not the one the server holds for the account.
+  async function checkKeyMatches() {
+    try {
+      const mine = (S.priv.getFingerprint() || '').toUpperCase();
+      const srv = await api('/api/users/' + S.username + '/public-key');
+      if (srv.fingerprint && srv.fingerprint.toUpperCase() !== mine) {
+        toast('This key does not match the one on the server. Calls to you may fail.');
+      }
+    } catch (_) { /* no key uploaded yet */ }
+  }
+
+  // ---- signaling ------------------------------------------------------------
+  function connectWS() {
+    clearTimeout(S.reconnectTimer);
+    if (S.ws && (S.ws.readyState === 0 || S.ws.readyState === 1)) return;
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(proto + '://' + location.host + '/ws');
+    S.ws = ws;
+    ws.onopen = () => ws.send(JSON.stringify({ type: 'auth', token: S.token }));
+    ws.onmessage = (e) => { try { onSignal(JSON.parse(e.data)); } catch (_) {} };
+    ws.onclose = () => {
+      S.ready = false; setNet(false);
+      if (S.token) S.reconnectTimer = setTimeout(connectWS, 3000);
+    };
+  }
+
+  function sendRaw(kind, to, callId, body) {
+    if (!S.ws || S.ws.readyState !== 1) return false;
+    S.ws.send(JSON.stringify({ type: 'call', kind, to, callId, video: !!S.video, body: body || '' }));
+    return true;
+  }
+
+  async function encryptFor(keyObj, obj) {
+    const message = await openpgp.createMessage({ text: JSON.stringify(obj) });
+    return openpgp.encrypt({ message, encryptionKeys: keyObj });
+  }
+
+  async function decryptBody(armored) {
+    const message = await openpgp.readMessage({ armoredMessage: armored });
+    const { data } = await openpgp.decrypt({ message, decryptionKeys: S.priv });
+    return JSON.parse(data);
+  }
+
+  async function keyOf(username) {
+    const r = await api('/api/users/' + username + '/public-key');
+    return openpgp.readKey({ armoredKey: r.publicKey });
+  }
+
+  function onSignal(m) {
+    if (m.type === 'ready') { S.ready = true; setNet(true); return; }
+
+    if (m.type === 'error') {
+      if (S.callId && m.callId === S.callId) endCall('@' + S.peer + ' is not available', false);
+      return;
+    }
+    if (m.type !== 'call') return;
+
+    // Already on a call with someone else: refuse politely.
+    if (S.callId && m.callId !== S.callId) {
+      if (m.kind === 'offer') sendRaw('busy', m.from, m.callId, '');
+      return;
+    }
+
+    if (m.kind === 'offer' && !S.callId) return showIncoming(m);
+    if (m.kind === 'offer' && S.callId && !S.outgoing && !S.pendingOffer) {
+      S.pendingOffer = m.body;
+      $('accept').disabled = false;
+      return;
+    }
+    if (m.kind === 'answer' && S.outgoing) return applyAnswer(m.body);
+    if (m.kind === 'hangup' || m.kind === 'busy') endCall('Call ended', false);
+  }
+
+  // ---- calls ----------------------------------------------------------------
+  function makePC(ice) {
+    const pc = new RTCPeerConnection({
+      iceServers: ice.iceServers,
+      // Always relay: same policy as the Android app.
+      iceTransportPolicy: 'relay',
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require',
+    });
+    S.relays = 0;
+    pc.onicecandidate = (e) => { if (e.candidate && e.candidate.type === 'relay') S.relays++; };
+    pc.oniceconnectionstatechange = () => {
+      const st = pc.iceConnectionState;
+      if (st === 'checking') setStatus('Finding a route…');
+      if (st === 'connected' || st === 'completed') onConnected();
+      if (st === 'failed') endCall('Could not connect. Relay paths found: ' + S.relays, true);
+    };
+    pc.ontrack = (e) => {
+      $('remote').srcObject = e.streams[0] || new MediaStream([e.track]);
+    };
+    S.pc = pc;
+    return pc;
+  }
+
+  async function startMedia(pc) {
+    S.local = await navigator.mediaDevices.getUserMedia({ audio: true, video: S.video });
+    $('local').srcObject = S.local;
+    $('local').classList.toggle('hidden', !S.video);
+    S.local.getTracks().forEach((t) => pc.addTrack(t, S.local));
+  }
+
+  // Wait for every candidate, so the description contains all network paths.
+  function waitForGathering(pc) {
+    return new Promise((resolve) => {
+      if (pc.iceGatheringState === 'complete') return resolve();
+      const done = () => {
+        if (pc.iceGatheringState === 'complete') {
+          pc.removeEventListener('icegatheringstatechange', done);
+          resolve();
+        }
+      };
+      pc.addEventListener('icegatheringstatechange', done);
+      setTimeout(resolve, 5000);
+    });
+  }
+
+  async function startCall(username, video) {
+    if (S.callId) return toast('You are already on a call');
+    if (!S.ready) return toast('Not connected yet. Try again in a moment.');
+    S.callId = crypto.randomUUID();
+    S.peer = username; S.video = video; S.outgoing = true; S.connected = false;
+    showCall('Calling…');
+    try {
+      S.peerKey = await keyOf(username);
+      const ice = await api('/api/calls/ice');
+      const pc = makePC(ice);
+      await startMedia(pc);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await waitForGathering(pc);
+      if (S.relays === 0) throw new Error('No relay path could be created');
+      const body = await encryptFor(S.peerKey, { type: pc.localDescription.type, sdp: pc.localDescription.sdp });
+      sendRaw('offer', username, S.callId, body);
+      S.ringTimer = setTimeout(() => { if (!S.connected) endCall('No answer', true); }, 45000);
+    } catch (err) {
+      endCall(err.message, true);
+    }
+  }
+
+  function showIncoming(m) {
+    S.callId = m.callId; S.peer = m.from; S.video = !!m.video;
+    S.outgoing = false; S.connected = false; S.pendingOffer = m.body;
+    $('inFrom').textContent = '@' + m.from;
+    $('inKind').textContent = m.video ? 'Incoming video call' : 'Incoming voice call';
+    $('accept').disabled = false;
+    $('incoming').classList.remove('hidden');
+    try { navigator.vibrate && navigator.vibrate([400, 250, 400]); } catch (_) {}
+  }
+
+  async function acceptCall() {
+    $('accept').disabled = true;
+    $('incoming').classList.add('hidden');
+    showCall('Connecting…');
+    try {
+      S.peerKey = await keyOf(S.peer);
+      const offer = await decryptBody(S.pendingOffer);
+      const ice = await api('/api/calls/ice');
+      const pc = makePC(ice);
+      await startMedia(pc);
+      await pc.setRemoteDescription({ type: offer.type, sdp: offer.sdp });
+      startConnectTimer();
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await waitForGathering(pc);
+      if (S.relays === 0) throw new Error('No relay path could be created');
+      const body = await encryptFor(S.peerKey, { type: pc.localDescription.type, sdp: pc.localDescription.sdp });
+      sendRaw('answer', S.peer, S.callId, body);
+    } catch (err) {
+      endCall(err.message, true);
+    }
+  }
+
+  async function applyAnswer(body) {
+    try {
+      const answer = await decryptBody(body);
+      await S.pc.setRemoteDescription({ type: answer.type, sdp: answer.sdp });
+      clearTimeout(S.ringTimer);
+      startConnectTimer();
+    } catch (err) {
+      endCall('Setup failed: ' + err.message, true);
+    }
+  }
+
+  function startConnectTimer() {
+    clearTimeout(S.connectTimer);
+    S.connectTimer = setTimeout(() => {
+      if (!S.connected) endCall('Could not connect in time. Relay paths found: ' + S.relays, true);
+    }, 45000);
+  }
+
+  function onConnected() {
+    S.connected = true;
+    clearTimeout(S.connectTimer); clearTimeout(S.ringTimer);
+    setStatus('Connected');
+  }
+
+  function endCall(message, notifyPeer) {
+    if (!S.callId) return;
+    const { callId, peer } = S;
+    if (notifyPeer) sendRaw('hangup', peer, callId, '');
+    cleanup();
+    $('incoming').classList.add('hidden');
+    setStatus(message);
+    setTimeout(() => { if (!S.callId) $('call').classList.add('hidden'); }, 1800);
+  }
+
+  function cleanup() {
+    clearTimeout(S.connectTimer); clearTimeout(S.ringTimer);
+    if (S.pc) { S.pc.close(); S.pc = null; }
+    if (S.local) { S.local.getTracks().forEach((t) => t.stop()); S.local = null; }
+    $('remote').srcObject = null; $('local').srcObject = null;
+    S.callId = null; S.peer = null; S.peerKey = null; S.pendingOffer = null;
+    S.outgoing = false; S.connected = false;
+    $('mute').textContent = 'Mute';
+    $('cam').textContent = 'Camera off';
+  }
+
+  // ---- call screen ----------------------------------------------------------
+  function showCall(status) {
+    $('callName').textContent = '@' + S.peer;
+    $('call').classList.remove('hidden');
+    setStatus(status);
+  }
+  function setStatus(text) { $('callStatus').textContent = text; }
+
+  $('accept').addEventListener('click', acceptCall);
+  $('decline').addEventListener('click', () => { $('incoming').classList.add('hidden'); endCall('Call declined', true); });
+  $('end').addEventListener('click', () => endCall('Call ended', true));
+  $('mute').addEventListener('click', () => {
+    if (!S.local) return;
+    const on = S.local.getAudioTracks().some((t) => t.enabled);
+    S.local.getAudioTracks().forEach((t) => (t.enabled = !on));
+    $('mute').textContent = on ? 'Unmute' : 'Mute';
+  });
+  $('cam').addEventListener('click', () => {
+    if (!S.local) return;
+    const on = S.local.getVideoTracks().some((t) => t.enabled);
+    S.local.getVideoTracks().forEach((t) => (t.enabled = !on));
+    $('cam').textContent = on ? 'Camera on' : 'Camera off';
+  });
+
+  // ---- search ---------------------------------------------------------------
+  let searchTimer = null;
+  $('search').addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 300);
+  });
+
+  async function runSearch() {
+    const q = $('search').value.trim().toLowerCase();
+    const box = $('results');
+    box.textContent = '';
+    if (q.length < 2) return;
+    try {
+      const j = await api('/api/users/search?q=' + encodeURIComponent(q));
+      if (!j.results.length) {
+        const p = document.createElement('p'); p.className = 'muted small'; p.textContent = 'No users found';
+        box.appendChild(p); return;
+      }
+      for (const u of j.results) {
+        if (u.username === S.username) continue;
+        const row = document.createElement('div'); row.className = 'user';
+        const info = document.createElement('div');
+        const name = document.createElement('b'); name.textContent = '@' + u.username;
+        const note = document.createElement('span'); note.className = 'muted small';
+        note.textContent = u.hasPublicKey ? 'Ready for calls' : 'No key yet';
+        info.append(name, note);
+        const btns = document.createElement('div'); btns.className = 'btns';
+        const voice = document.createElement('button'); voice.className = 'round'; voice.textContent = 'Call';
+        const video = document.createElement('button'); video.className = 'round'; video.textContent = 'Video';
+        voice.disabled = video.disabled = !u.hasPublicKey;
+        voice.onclick = () => startCall(u.username, false);
+        video.onclick = () => startCall(u.username, true);
+        btns.append(voice, video);
+        row.append(info, btns);
+        box.appendChild(row);
+      }
+    } catch (err) {
+      const p = document.createElement('p'); p.className = 'err'; p.textContent = err.message;
+      box.appendChild(p);
+    }
+  }
+
+  window.addEventListener('beforeunload', () => { if (S.callId) sendRaw('hangup', S.peer, S.callId, ''); });
+})();
+</script>
+</body>
+</html>

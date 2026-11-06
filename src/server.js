@@ -40,6 +40,8 @@ app.use('/api/blocks', blockRoutes);
 app.use('/api/calls', callRoutes);
 
 app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'privacy.html')));
+app.get('/call', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'call.html')));
+app.use('/vendor', express.static(path.join(__dirname, '..', 'node_modules', 'openpgp', 'dist')));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));

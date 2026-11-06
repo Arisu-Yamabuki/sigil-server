@@ -22,6 +22,7 @@
     "mongoose": "^8.9.0",
     "socket.io": "^4.8.1",
     "ws": "^8.18.0",
-    "firebase-admin": "^12.7.0"
+    "firebase-admin": "^12.7.0",
+    "openpgp": "5.11.2"
   }
 }
